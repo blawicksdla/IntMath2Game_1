@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quad Lab</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    :root { --ink:#182028; --muted:#6d737b; --line:#dfe3e5; --paper:#f5f1e8; --panel:#fffdf8; --field:#faf8f1; --grid:#e5e1d7; --coral:#f06b4d; --blue:#166f8c; --green:#2d876d; --yellow:#e0ad3d; }
+    body.dark { --ink:#f3f0e8; --muted:#9da6aa; --line:#394247; --paper:#151a1d; --panel:#20272b; --field:#182024; --grid:#2b3438; --blue:#64bfd4; --green:#6ac09b; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--paper); font-family:'Space Grotesk',sans-serif; overflow:hidden; transition:background .2s,color .2s; }
+    .app { height:100dvh; min-height:100dvh; display:grid; grid-template-columns:minmax(0,1fr) 390px; overflow:hidden; }
+    .stage { min-height:0; height:100dvh; padding:38px clamp(22px,5vw,72px); display:flex; flex-direction:column; }
+    .topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; }
+    .tabs { display:flex; gap:24px; margin-bottom:28px; border-bottom:1px solid var(--line); }.tab { border:0; border-bottom:2px solid transparent; margin-bottom:-1px; padding:0 0 11px; background:none; color:var(--muted); cursor:pointer; font:500 11px 'DM Mono',monospace; letter-spacing:.08em; text-transform:uppercase; }.tab.active { color:var(--coral); border-color:var(--coral); }
+    .eyebrow { color:var(--coral); font:500 11px 'DM Mono',monospace; letter-spacing:.14em; text-transform:uppercase; }
+    h1 { font-size:clamp(32px,4vw,55px); line-height:.98; letter-spacing:-.06em; margin:12px 0 0; font-weight:600; }
+    .actions { display:flex; gap:8px; align-items:center; }
+    .icon-button { width:34px; height:34px; border:1px solid var(--line); background:var(--panel); color:var(--ink); cursor:pointer; font:500 15px 'DM Mono',monospace; }
+    .icon-button:hover { border-color:var(--coral); color:var(--coral); }
+    .hint { color:var(--muted); font-size:14px; line-height:1.5; max-width:250px; margin-top:5px; text-align:right; }
+    .canvas-wrap { position:relative; flex:1; min-height:0; margin-top:28px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); overflow:hidden; }
+    .canvas-wrap::before { content:''; position:absolute; inset:0; opacity:.18; background:var(--grid); mask-image:linear-gradient(to bottom, black, transparent 95%); }
+    svg { position:absolute; width:100%; height:100%; overflow:visible; touch-action:none; }
+    .quad { fill:rgba(240,107,77,.16); stroke:var(--coral); stroke-width:3; stroke-linejoin:round; }
+    .diagonal { stroke:#b8c1c1; stroke-width:1.5; stroke-dasharray:5 7; }
+    .vertex { fill:var(--panel); stroke:var(--coral); stroke-width:3; cursor:grab; pointer-events:none; }
+    .vertex:active { cursor:grabbing; }
+    .vertex-hit { fill:transparent; stroke:transparent; stroke-width:20; cursor:grab; touch-action:none; }
+    .vertex-label { font:500 13px 'DM Mono',monospace; fill:var(--ink); pointer-events:none; }
+    .measure { font:500 12px 'DM Mono',monospace; fill:var(--blue); paint-order:stroke; stroke:var(--paper); stroke-width:6px; stroke-linejoin:round; }
+    .angle { font:500 12px 'DM Mono',monospace; fill:var(--green); paint-order:stroke; stroke:var(--paper); stroke-width:6px; }
+    .legend { display:flex; gap:22px; flex-wrap:wrap; padding-top:18px; color:var(--muted); font-size:12px; }
+    .legend span { display:flex; gap:8px; align-items:center; }.dot { width:9px;height:9px;border-radius:50%; background:var(--coral); }.line-dot { width:18px;border-top:2px solid var(--blue); }.angle-dot { width:9px;height:9px;border:2px solid var(--green); border-radius:50%; }
+    .panel { height:100dvh; overflow-y:auto; background:var(--panel); border-left:1px solid var(--line); padding:40px 31px 30px; display:flex; flex-direction:column; gap:28px; }
+    .grid-tools { display:flex; gap:8px; align-items:center; margin-top:10px; justify-content:flex-end; }.snap-button { border:1px solid var(--line); background:var(--panel); color:var(--muted); padding:7px 9px; cursor:pointer; font:500 10px 'DM Mono',monospace; letter-spacing:.05em; }.snap-button.active { border-color:var(--green); color:var(--green); background:rgba(45,135,109,.08); }.grid-size { border:1px solid var(--line); background:var(--panel); color:var(--ink); padding:6px 7px; font:500 11px 'DM Mono',monospace; }.grid-size:disabled { opacity:.4; }
+    .panel-head { display:flex; justify-content:space-between; align-items:center; }.panel h2 { margin:0; font-size:18px; letter-spacing:-.03em; }.reset { color:var(--coral); background:none; border:0; padding:4px 0; font:500 11px 'DM Mono',monospace; cursor:pointer; text-transform:uppercase; letter-spacing:.08em; }
+    .preset { width:100%; border:1px solid var(--line); background:var(--field); color:var(--ink); padding:9px 10px; font:500 12px 'DM Mono',monospace; }
+    .game-card { border:1px solid var(--coral); padding:18px; background:rgba(240,107,77,.06); }.game-card h3 { margin:6px 0 5px; font-size:28px; letter-spacing:-.05em; }.game-card p { margin:0; color:var(--muted); font-size:13px; line-height:1.45; }.game-actions { display:flex; gap:8px; margin-top:16px; }.game-button { border:1px solid var(--ink); background:var(--ink); color:var(--panel); padding:9px 11px; cursor:pointer; font:500 10px 'DM Mono',monospace; text-transform:uppercase; letter-spacing:.06em; }.game-button.secondary { background:transparent; color:var(--ink); }.game-button.ready { border-color:var(--green); color:var(--green); animation:nextPulse 1.2s ease-in-out infinite; }.game-status { min-height:16px; margin-top:12px; color:var(--green); font:500 11px 'DM Mono',monospace; }.score { color:var(--muted); font:500 11px 'DM Mono',monospace; float:right; }.game-card.correct { border-color:var(--green); background:rgba(45,135,109,.14); animation:answerCorrect .45s ease-out; }.game-card.wrong { border-color:#c84d4d; background:rgba(200,77,77,.1); animation:answerWrong .35s ease-out; }.game-card.wrong .game-status { color:#c84d4d; }
+    @keyframes answerCorrect { 0% { transform:scale(1); } 45% { transform:scale(1.025); } 100% { transform:scale(1); } } @keyframes answerWrong { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-5px); } 75% { transform:translateX(5px); } } @keyframes nextPulse { 50% { box-shadow:0 0 0 4px rgba(45,135,109,.18); } }
+    .app:not(.freeplay) .freeplay-only { display:none; }.app.freeplay .game-only { display:none; }
+    .section-title { display:flex; justify-content:space-between; align-items:baseline; padding-bottom:10px; border-bottom:1px solid var(--line); }.section-title span { font-size:12px; color:var(--muted); }.section-title strong { font-size:14px; }
+    .inputs { display:grid; grid-template-columns:1fr 1fr; gap:12px 18px; margin-top:15px; }.field label { display:block; color:var(--muted); font:11px 'DM Mono',monospace; margin-bottom:5px; }.field input { width:100%; border:1px solid var(--line); background:var(--field); color:var(--ink); font:500 14px 'DM Mono',monospace; padding:9px 10px; outline:none; border-radius:2px; }.field input:focus { border-color:var(--coral); box-shadow:0 0 0 2px rgba(240,107,77,.12); }
+    .classification { border:1px solid var(--ink); padding:18px; position:relative; }.classification::before { content:'CURRENT READ'; position:absolute; top:-8px; left:13px; padding:0 6px; background:var(--panel); font:11px 'DM Mono',monospace; color:var(--muted); }.class-name { font-size:25px; font-weight:600; letter-spacing:-.05em; margin:3px 0 7px; }.class-detail { color:var(--muted); font-size:13px; line-height:1.45; }.chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:15px; }.chip { padding:5px 7px; background:#e9f1ee; color:var(--green); font:11px 'DM Mono',monospace; }
+    .facts { display:grid; grid-template-columns:1fr 1fr; gap:10px; }.fact { padding-top:10px; border-top:1px solid var(--line); }.fact b { display:block; font-size:17px; }.fact small { color:var(--muted); font:10px 'DM Mono',monospace; text-transform:uppercase; }
+    .footer-note { margin-top:auto; padding-top:18px; color:var(--muted); font-size:12px; line-height:1.5; }
+    @media (max-width:850px) { .app { grid-template-columns:1fr; grid-template-rows:minmax(0,1fr) minmax(0,1fr); }.stage { height:auto; }.panel { height:auto; min-height:0; border-left:0; border-top:1px solid var(--line); padding:28px 22px; }.hint { display:none; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="stage">
+      <nav class="tabs" aria-label="Modes"><button class="tab active" data-mode="game">Game mode</button><button class="tab" data-mode="freeplay">Freeplay</button></nav>
+      <div class="topbar"><div><div class="eyebrow">Interactive geometry / 01</div><h1>Quad<br>lab.</h1></div><div><div class="actions"><button class="icon-button" id="themeToggle" aria-label="Switch to dark mode" title="Switch to dark mode">◐</button><button class="icon-button" id="fullscreenToggle" aria-label="Enter fullscreen" title="Enter fullscreen">⛶</button></div><div class="hint">Drag any vertex to explore how a quadrilateral changes.</div><div class="grid-tools"><button class="snap-button active" id="snapToggle" aria-pressed="true">SNAP ON</button><label for="gridSize" class="eyebrow">GRID</label><select class="grid-size" id="gridSize" aria-label="Grid size"><option value="20">20</option><option value="40" selected>40</option><option value="60">60</option><option value="80">80</option></select></div></div></div>
+      <div class="canvas-wrap" id="canvasWrap">
+        <svg id="diagram" viewBox="0 0 800 520" aria-label="Interactive quadrilateral diagram">
+          <defs><pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse"><path id="gridLines" d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--grid)" stroke-width="1"/></pattern></defs>
+          <rect width="800" height="520" fill="url(#gridPattern)" opacity=".7"/>
+          <line id="diag1" class="diagonal"/><line id="diag2" class="diagonal"/>
+          <polygon id="polygon" class="quad"/>
+          <g id="measureLabels"></g><g id="angleLabels"></g><g id="vertices"></g>
+        </svg>
+      </div>
+      <div class="legend"><span><i class="dot"></i> draggable vertex</span><span><i class="line-dot"></i> side length</span><span><i class="angle-dot"></i> interior angle</span></div>
+    </section>
+    <aside class="panel">
+      <div class="panel-head"><h2>Shape inspector</h2><button class="reset" id="reset">Reset shape</button></div>
+      <section class="game-card game-only" id="gameCard"><div class="eyebrow">Current challenge <span class="score">SCORE <b id="score">0</b></span></div><h3 id="targetName">Kite</h3><p id="targetDescription">Create a quadrilateral with two pairs of adjacent equal sides.</p><div class="game-actions"><button class="game-button" id="checkShape">Check shape</button><button class="game-button secondary" id="newChallenge">Next challenge</button></div><div class="game-status" id="gameStatus"></div></section>
+      <select class="preset freeplay-only" id="shapeSelect" aria-label="Choose a starting shape"><option value="square">Square</option><option value="rectangle">Rectangle</option><option value="rhombus">Rhombus</option><option value="parallelogram">Parallelogram</option><option value="kite">Kite</option><option value="trapezoid">Trapezoid</option><option value="irregular">Irregular quadrilateral</option></select>
+      <section class="classification freeplay-only"><div class="class-name" id="className">Trapezoid</div><div class="class-detail" id="classDetail">One pair of parallel sides detected.</div><div class="chips" id="chips"></div></section>
+      <div class="facts"><div class="fact"><b id="perimeter">—</b><small>perimeter</small></div><div class="fact"><b id="area">—</b><small>area</small></div><div class="fact"><b id="diagonal">—</b><small>long diagonal</small></div><div class="fact"><b>360°</b><small>angle sum</small></div></div>
+      <section class="freeplay-only"><div class="section-title"><strong>Side lengths</strong><span>edit + press Enter</span></div><div class="inputs" id="sideInputs"></div></section>
+      <section class="freeplay-only"><div class="section-title"><strong>Interior angles</strong><span>degrees</span></div><div class="inputs" id="angleInputs"></div></section>
+      <div class="footer-note">Measurements are calculated from the live vertex positions. Numeric edits nudge the selected side or angle while preserving the rest of the drawing.</div>
+    </aside>
+  </main>
+<script>
+  const svg = document.querySelector('#diagram');
+  const defaults = [{x:240,y:80},{x:560,y:80},{x:560,y:400},{x:240,y:400}];
+  const rectangleDefaults = [{x:240,y:160},{x:560,y:160},{x:560,y:360},{x:240,y:360}];
+  const rhombusDefaults = [{x:280,y:280},{x:440,y:200},{x:520,y:360},{x:360,y:440}];
+  const parallelogramDefaults = [{x:200,y:200},{x:520,y:160},{x:600,y:320},{x:280,y:360}];
+  const kiteDefaults = [{x:400,y:120},{x:560,y:280},{x:400,y:360},{x:240,y:280}];
+  const trapezoidDefaults = [{x:240,y:160},{x:560,y:160},{x:480,y:360},{x:280,y:360}];
+  const irregularDefaults = [{x:240,y:160},{x:560,y:200},{x:520,y:400},{x:200,y:360}];
+  const shapePresets = {square:defaults, rectangle:rectangleDefaults, rhombus:rhombusDefaults, parallelogram:parallelogramDefaults, kite:kiteDefaults, trapezoid:trapezoidDefaults, irregular:irregularDefaults};
+  const challenges = {square:{name:'Square',description:'Create a quadrilateral with four equal sides and four right angles.'},rectangle:{name:'Rectangle',description:'Create a quadrilateral with four right angles.'},rhombus:{name:'Rhombus',description:'Create a quadrilateral with four equal sides.'},parallelogram:{name:'Parallelogram',description:'Create a quadrilateral with two pairs of parallel sides.'},kite:{name:'Kite',description:'Create a quadrilateral with two pairs of adjacent equal sides.'},trapezoid:{name:'Trapezoid',description:'Create a quadrilateral with at least one pair of parallel sides.'},irregular:{name:'Irregular quadrilateral',description:'Create a quadrilateral with no special equal-side or angle pattern.'}};
+  const starterShapes = [
+    {type:'irregular',points:[{x:160,y:160},{x:560,y:120},{x:640,y:320},{x:240,y:440}]},
+    {type:'irregular',points:[{x:200,y:120},{x:600,y:200},{x:520,y:440},{x:160,y:320}]},
+    {type:'irregular',points:[{x:240,y:120},{x:520,y:120},{x:640,y:360},{x:200,y:440}]},
+    {type:'trapezoid',points:[{x:160,y:200},{x:520,y:120},{x:600,y:360},{x:240,y:440}]},
+    {type:'irregular',points:[{x:200,y:160},{x:560,y:120},{x:600,y:320},{x:240,y:440}]}
+  ];
+  let challengeKeys = Object.keys(challenges), challengeIndex = 0;
+  let gridSize = 40, snapToGrid = true;
+  let points = defaults.map(p => ({...p}));
+  const names = ['A','B','C','D'];
+  const sideInputs = document.querySelector('#sideInputs'), angleInputs = document.querySelector('#angleInputs');
+  const fmt = (n, digits=1) => Number(n).toFixed(digits);
+  const dist = (a,b) => Math.hypot(b.x-a.x,b.y-a.y);
+  const cross = (a,b,c) => (b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
+  function angleAt(i) { const p=points[i], prev=points[(i+3)%4], next=points[(i+1)%4]; const v1={x:prev.x-p.x,y:prev.y-p.y}, v2={x:next.x-p.x,y:next.y-p.y}; let a=Math.atan2(Math.abs(v1.x*v2.y-v1.y*v2.x),v1.x*v2.x+v1.y*v2.y)*180/Math.PI; return a; }
+  function svgPoint(e) { const point=svg.createSVGPoint(); point.x=e.clientX; point.y=e.clientY; const screenPoint=point.matrixTransform(svg.getScreenCTM().inverse()); return {x:screenPoint.x,y:screenPoint.y}; }
+  function snappedPoint(point) { if (!snapToGrid) return point; return {x:Math.max(0,Math.min(800,Math.round(point.x/gridSize)*gridSize)),y:Math.max(0,Math.min(520,Math.round(point.y/gridSize)*gridSize))}; }
+  function starterOnGrid(pointsToPlace) { return pointsToPlace.map(point=>({x:Math.max(0,Math.min(800,Math.round(point.x/gridSize)*gridSize)),y:Math.max(0,Math.min(520,Math.round(point.y/gridSize)*gridSize))})); }
+  function randomStarter(targetKey) { const choices=starterShapes.filter(shape=>shape.type!==targetKey); return starterOnGrid(choices[Math.floor(Math.random()*choices.length)].points).map(point=>({...point})); }
+  function updateGrid() { document.querySelector('#gridPattern').setAttribute('width',gridSize); document.querySelector('#gridPattern').setAttribute('height',gridSize); document.querySelector('#gridLines').setAttribute('d',`M ${gridSize} 0 L 0 0 0 ${gridSize}`); document.querySelector('#gridSize').value=gridSize; document.querySelector('#gridSize').disabled=!snapToGrid; document.querySelector('#snapToggle').textContent=snapToGrid?'SNAP ON':'SNAP OFF'; document.querySelector('#snapToggle').classList.toggle('active',snapToGrid); document.querySelector('#snapToggle').setAttribute('aria-pressed',snapToGrid); }
+  function render(rebuildControls=true) {
+    document.querySelector('#polygon').setAttribute('points', points.map(p=>`${p.x},${p.y}`).join(' '));
+    document.querySelector('#diag1').setAttribute('x1',points[0].x); document.querySelector('#diag1').setAttribute('y1',points[0].y); document.querySelector('#diag1').setAttribute('x2',points[2].x); document.querySelector('#diag1').setAttribute('y2',points[2].y);
+    document.querySelector('#diag2').setAttribute('x1',points[1].x); document.querySelector('#diag2').setAttribute('y1',points[1].y); document.querySelector('#diag2').setAttribute('x2',points[3].x); document.querySelector('#diag2').setAttribute('y2',points[3].y);
+    const lengths=points.map((p,i)=>dist(p,points[(i+1)%4])), angles=points.map((_,i)=>angleAt(i));
+    document.querySelector('#measureLabels').innerHTML=lengths.map((v,i)=>{const a=points[i],b=points[(i+1)%4]; return `<text class="measure" text-anchor="middle" x="${(a.x+b.x)/2}" y="${(a.y+b.y)/2-10}">${fmt(v)} px</text>`}).join('');
+    document.querySelector('#angleLabels').innerHTML=angles.map((v,i)=>{const p=points[i], cx=p.x+(points[(i+3)%4].x-p.x)*.13+(points[(i+1)%4].x-p.x)*.13, cy=p.y+(points[(i+3)%4].y-p.y)*.13+(points[(i+1)%4].y-p.y)*.13; return `<text class="angle" text-anchor="middle" x="${cx}" y="${cy}">${fmt(v)}°</text>`}).join('');
+    if (rebuildControls) {
+      document.querySelector('#vertices').innerHTML=points.map((p,i)=>`<circle class="vertex-hit" data-i="${i}" cx="${p.x}" cy="${p.y}" r="22"/><circle class="vertex" data-i="${i}" cx="${p.x}" cy="${p.y}" r="9"/><text class="vertex-label" x="${p.x+14}" y="${p.y-13}">${names[i]}</text>`).join('');
+      sideInputs.innerHTML=lengths.map((v,i)=>`<div class="field"><label>${names[i]}${names[(i+1)%4]} / SIDE</label><input data-side="${i}" type="number" min="1" step="1" value="${fmt(v)}"></div>`).join('');
+      angleInputs.innerHTML=angles.map((v,i)=>`<div class="field"><label>ANGLE ${names[i]}</label><input data-angle="${i}" type="number" min="5" max="175" step="1" value="${fmt(v)}"></div>`).join('');
+    } else {
+      document.querySelectorAll('.vertex-hit, .vertex').forEach((el)=>{const i=+el.dataset.i; el.setAttribute('cx',points[i].x);el.setAttribute('cy',points[i].y)});
+      document.querySelectorAll('.vertex-label').forEach((el,i)=>{el.setAttribute('x',points[i].x+14);el.setAttribute('y',points[i].y-13)});
+    }
+    const area=Math.abs(points.reduce((sum,p,i)=>sum+p.x*points[(i+1)%4].y-points[(i+1)%4].x*p.y,0))/2, perimeter=lengths.reduce((a,b)=>a+b,0), diagonals=[dist(points[0],points[2]),dist(points[1],points[3])];
+    document.querySelector('#perimeter').textContent=fmt(perimeter)+' px'; document.querySelector('#area').textContent=fmt(area,0)+' px²'; document.querySelector('#diagonal').textContent=fmt(Math.max(...diagonals))+' px'; classify(lengths, angles);
+    if (rebuildControls) { bindInputs(); bindVertices(); }
+  }
+  function classify(l,a) { const eq=(x,y,t=.04)=>Math.abs(x-y)<=Math.max(6,Math.max(x,y)*t), parallel=(i,j)=>Math.abs(cross(points[i],points[(i+1)%4],points[j])-cross(points[i],points[(i+1)%4],points[(j+1)%4]))<400; const allSides=l.every(x=>eq(x,l[0],.025)), opposite=l[0]&&eq(l[0],l[2])&&eq(l[1],l[3]), kite=eq(l[0],l[3])&&eq(l[1],l[2])&&!allSides, right=a.every(x=>Math.abs(x-90)<3), hasParallel=parallel(0,2)||parallel(1,3); let title='Irregular quadrilateral', detail='Four sides and four distinct angles.'; if(allSides&&right){title='Square';detail='Four equal sides and four right angles.'} else if(allSides){title='Rhombus';detail='Four equal sides with opposite angles matching.'} else if(right&&opposite){title='Rectangle';detail='Four right angles and opposite sides equal.'} else if(opposite){title='Parallelogram';detail='Both pairs of opposite sides are equal.'} else if(kite){title='Kite';detail='Two pairs of adjacent sides are equal.'} else if(hasParallel){title='Trapezoid';detail='One pair of parallel sides detected.'} document.querySelector('#className').textContent=title; document.querySelector('#classDetail').textContent=detail; document.querySelector('#chips').innerHTML=[allSides?'equal sides':'',right?'right angles':'',opposite?'opposite sides equal':'',kite?'adjacent sides equal':'',hasParallel?'parallel sides':''].filter(Boolean).map(x=>`<span class="chip">${x}</span>`).join(''); }
+  function isParallelogram() { const vectorCross=(a,b,c,d)=>(b.x-a.x)*(d.y-c.y)-(b.y-a.y)*(d.x-c.x), equalSides=(a,b)=>Math.abs(a-b)<=Math.max(6,Math.max(a,b)*.04), sides=points.map((point,i)=>dist(point,points[(i+1)%4])); const parallelPairs=Math.abs(vectorCross(points[0],points[1],points[2],points[3]))<=Math.max(40,sides[0]*sides[2]*.04)&&Math.abs(vectorCross(points[1],points[2],points[3],points[0]))<=Math.max(40,sides[1]*sides[3]*.04); return parallelPairs||(equalSides(sides[0],sides[2])&&equalSides(sides[1],sides[3])); }
+  function bindVertices(){document.querySelectorAll('.vertex-hit').forEach(el=>{el.onpointerdown=e=>{const i=+el.dataset.i; el.setPointerCapture(e.pointerId); const move=ev=>{points[i]=snappedPoint(svgPoint(ev));render(false)}; const up=()=>{render();el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',up)}; el.addEventListener('pointermove',move);el.addEventListener('pointerup',up)}})}
+  function bindInputs(){const commit=(input)=>{input.blur()}; sideInputs.querySelectorAll('input').forEach(input=>{input.onchange=()=>{const i=+input.dataset.side, len=Number(input.value), a=points[i], b=points[(i+1)%4], d=dist(a,b)||1; points[(i+1)%4]={x:a.x+(b.x-a.x)*len/d,y:a.y+(b.y-a.y)*len/d}; render()}; input.onkeydown=e=>{if(e.key==='Enter') commit(input)}}); angleInputs.querySelectorAll('input').forEach(input=>{input.onchange=()=>{const i=+input.dataset.angle, target=Math.min(175,Math.max(5,Number(input.value))), p=points[i], next=points[(i+1)%4], radius=dist(p,next), prev=points[(i+3)%4], base=Math.atan2(prev.y-p.y,prev.x-p.x), sign=cross(p,prev,next)>=0?1:-1, radians=(target*Math.PI/180); const theta=base+sign*radians; points[(i+1)%4]={x:p.x+Math.cos(theta)*radius,y:p.y+Math.sin(theta)*radius}; render()}; input.onkeydown=e=>{if(e.key==='Enter') commit(input)}})}
+  const themeToggle=document.querySelector('#themeToggle'), fullscreenToggle=document.querySelector('#fullscreenToggle'), snapToggle=document.querySelector('#snapToggle'), gridSizeInput=document.querySelector('#gridSize'), shapeSelect=document.querySelector('#shapeSelect'), app=document.querySelector('.app'), gameCard=document.querySelector('#gameCard'), gameStatus=document.querySelector('#gameStatus'), nextButton=document.querySelector('#newChallenge'), scoreOutput=document.querySelector('#score');
+  let score=0, roundScored=false;
+  function updateTheme(){const dark=document.body.classList.toggle('dark'); localStorage.setItem('quad-lab-theme',dark?'dark':'light'); themeToggle.setAttribute('aria-label',dark?'Switch to light mode':'Switch to dark mode'); themeToggle.title=dark?'Switch to light mode':'Switch to dark mode';}
+  if(localStorage.getItem('quad-lab-theme')==='dark') document.body.classList.add('dark');
+  document.querySelectorAll('.tab').forEach(tab=>tab.onclick=()=>{document.querySelectorAll('.tab').forEach(item=>item.classList.toggle('active',item===tab));app.classList.toggle('freeplay',tab.dataset.mode==='freeplay')});
+  themeToggle.onclick=updateTheme;
+  snapToggle.onclick=()=>{snapToGrid=!snapToGrid;updateGrid()};
+  gridSizeInput.onchange=()=>{gridSize=Number(gridSizeInput.value);updateGrid()};
+  shapeSelect.onchange=()=>{points=shapePresets[shapeSelect.value].map(p=>({...p}));render()};
+  function clearAnswerState(){gameCard.classList.remove('correct','wrong');nextButton.classList.remove('ready');}
+  function showChallenge(){const challenge=challenges[challengeKeys[challengeIndex]]; document.querySelector('#targetName').textContent=challenge.name; document.querySelector('#targetDescription').textContent=challenge.description; gameStatus.textContent='';clearAnswerState();}
+  function startGameRound(){roundScored=false;points=randomStarter(challengeKeys[challengeIndex]);showChallenge();render()}
+  document.querySelector('#checkShape').onclick=()=>{const actual=document.querySelector('#className').textContent, target=challenges[challengeKeys[challengeIndex]].name, correct=target==='Parallelogram'?isParallelogram():actual===target; gameCard.classList.remove('correct','wrong');void gameCard.offsetWidth;gameCard.classList.add(correct?'correct':'wrong');gameStatus.textContent=correct?'Challenge complete. Nice work.':`Current read: ${actual}. Keep adjusting.`;if(correct){if(!roundScored){score++;scoreOutput.textContent=score;roundScored=true}nextButton.classList.add('ready')}};
+  document.querySelector('#newChallenge').onclick=()=>{challengeIndex=Math.floor(Math.random()*challengeKeys.length);startGameRound()};
+  fullscreenToggle.onclick=()=>{if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.()};
+  document.addEventListener('fullscreenchange',()=>{const active=Boolean(document.fullscreenElement); fullscreenToggle.textContent=active?'×':'⛶'; fullscreenToggle.setAttribute('aria-label',active?'Exit fullscreen':'Enter fullscreen'); fullscreenToggle.title=active?'Exit fullscreen':'Enter fullscreen'});
+  document.querySelector('#reset').onclick=()=>{if(app.classList.contains('freeplay')) points=shapePresets[shapeSelect.value].map(p=>({...p})); else {points=randomStarter(challengeKeys[challengeIndex]);roundScored=false;clearAnswerState()}gameStatus.textContent='';render()}; updateGrid(); challengeIndex=Math.floor(Math.random()*challengeKeys.length); startGameRound();
+</script>
+</body>
+</html>
