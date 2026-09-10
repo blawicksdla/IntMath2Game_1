@@ -31,9 +31,9 @@
     .vertex-label { font:500 13px 'DM Mono',monospace; fill:var(--ink); pointer-events:none; }
     .measure { font:500 12px 'DM Mono',monospace; fill:var(--blue); paint-order:stroke; stroke:var(--paper); stroke-width:6px; stroke-linejoin:round; }
     .angle { font:500 12px 'DM Mono',monospace; fill:var(--green); paint-order:stroke; stroke:var(--paper); stroke-width:6px; }
-    .slope { font:700 11px 'DM Mono',monospace; fill:var(--ink); paint-order:stroke; stroke:var(--panel); stroke-width:7px; stroke-linejoin:round; letter-spacing:.02em; }
+    .slope { font:700 10.5px 'DM Mono',monospace; fill:var(--ink); paint-order:stroke; stroke:var(--panel); stroke-width:7px; stroke-linejoin:round; letter-spacing:.02em; }
     .legend { display:flex; gap:22px; flex-wrap:wrap; padding-top:18px; color:var(--muted); font-size:12px; }
-    .legend span { display:flex; gap:8px; align-items:center; }.dot { width:9px;height:9px;border-radius:50%; background:var(--coral); }.line-dot { width:18px;border-top:2px solid var(--blue); }.angle-dot { width:9px;height:9px;border:2px solid var(--green); border-radius:50%; }
+    .legend span { display:flex; gap:8px; align-items:center; }.dot { width:9px;height:9px;border-radius:50%; background:var(--coral); }.line-dot { width:18px;border-top:2px solid var(--blue); }.angle-dot { width:9px;height:9px;border:2px solid var(--green); border-radius:50%; }.slope-dot { width:14px;height:14px;border-radius:3px; background:var(--ink); border:2px solid var(--panel); box-shadow:0 0 0 1px var(--ink); }
     .panel { height:100dvh; overflow-y:auto; background:var(--panel); border-left:1px solid var(--line); padding:40px 31px 30px; display:flex; flex-direction:column; gap:28px; }
     .grid-tools { display:flex; gap:8px; align-items:center; margin-top:10px; justify-content:flex-end; }.snap-button { border:1px solid var(--line); background:var(--panel); color:var(--muted); padding:7px 9px; cursor:pointer; font:500 10px 'DM Mono',monospace; letter-spacing:.05em; }.snap-button.active { border-color:var(--green); color:var(--green); background:rgba(45,135,109,.08); }.grid-size { border:1px solid var(--line); background:var(--panel); color:var(--ink); padding:6px 7px; font:500 11px 'DM Mono',monospace; }.grid-size:disabled { opacity:.4; }
     .panel-head { display:flex; justify-content:space-between; align-items:center; }.panel h2 { margin:0; font-size:18px; letter-spacing:-.03em; }.reset { color:var(--coral); background:none; border:0; padding:4px 0; font:500 11px 'DM Mono',monospace; cursor:pointer; text-transform:uppercase; letter-spacing:.08em; }
@@ -63,7 +63,7 @@
           <g id="measureLabels"></g><g id="angleLabels"></g><g id="slopeLabels"></g><g id="vertices"></g>
         </svg>
       </div>
-      <div class="legend"><span><i class="dot"></i> draggable vertex</span><span><i class="line-dot"></i> side length</span><span><i class="angle-dot"></i> interior angle</span></div>
+      <div class="legend"><span><i class="dot"></i> draggable vertex</span><span><i class="line-dot"></i> side length</span><span><i class="angle-dot"></i> interior angle</span><span><i class="slope-dot"></i> slope</span></div>
     </section>
     <aside class="panel">
       <div class="panel-head"><h2>Shape inspector</h2><button class="reset" id="reset">Reset shape</button></div>
@@ -122,10 +122,13 @@
       const mx=(p.x+q.x)/2;
       const my=(p.y+q.y)/2;
       const len=Math.hypot(dx,dy) || 1;
-      const offsetX=(-dy/len)*20;
-      const offsetY=(dx/len)*20;
+      const nx=(-dy/len);
+      const ny=(dx/len);
+      const labelDistance = 34 + Math.min(20, Math.max(0, len / 24));
+      const lx = mx + nx * labelDistance;
+      const ly = my + ny * labelDistance + 5;
       const slope = Math.abs(dx) < 0.001 ? '∞' : (dy/dx).toFixed(2);
-      return `<text class="slope" text-anchor="middle" x="${mx + offsetX}" y="${my + offsetY + 18}">m = ${slope}</text>`;
+      return `<text class="slope" text-anchor="middle" x="${lx}" y="${ly}">m = ${slope}</text>`;
     }).join('');
     if (rebuildControls) {
       document.querySelector('#vertices').innerHTML=points.map((p,i)=>`<circle class="vertex-hit" data-i="${i}" cx="${p.x}" cy="${p.y}" r="22"/><circle class="vertex" data-i="${i}" cx="${p.x}" cy="${p.y}" r="9"/><text class="vertex-label" x="${p.x+14}" y="${p.y-13}">${names[i]}</text>`).join('');
