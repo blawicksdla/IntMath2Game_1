@@ -31,6 +31,7 @@
     .vertex-label { font:500 13px 'DM Mono',monospace; fill:var(--ink); pointer-events:none; }
     .measure { font:500 12px 'DM Mono',monospace; fill:var(--blue); paint-order:stroke; stroke:var(--paper); stroke-width:6px; stroke-linejoin:round; }
     .angle { font:500 12px 'DM Mono',monospace; fill:var(--green); paint-order:stroke; stroke:var(--paper); stroke-width:6px; }
+    .slope { font:700 11px 'DM Mono',monospace; fill:var(--ink); paint-order:stroke; stroke:var(--panel); stroke-width:7px; stroke-linejoin:round; letter-spacing:.02em; }
     .legend { display:flex; gap:22px; flex-wrap:wrap; padding-top:18px; color:var(--muted); font-size:12px; }
     .legend span { display:flex; gap:8px; align-items:center; }.dot { width:9px;height:9px;border-radius:50%; background:var(--coral); }.line-dot { width:18px;border-top:2px solid var(--blue); }.angle-dot { width:9px;height:9px;border:2px solid var(--green); border-radius:50%; }
     .panel { height:100dvh; overflow-y:auto; background:var(--panel); border-left:1px solid var(--line); padding:40px 31px 30px; display:flex; flex-direction:column; gap:28px; }
@@ -59,7 +60,7 @@
           <rect width="800" height="520" fill="url(#gridPattern)" opacity=".7"/>
           <line id="diag1" class="diagonal"/><line id="diag2" class="diagonal"/>
           <polygon id="polygon" class="quad"/>
-          <g id="measureLabels"></g><g id="angleLabels"></g><g id="vertices"></g>
+          <g id="measureLabels"></g><g id="angleLabels"></g><g id="slopeLabels"></g><g id="vertices"></g>
         </svg>
       </div>
       <div class="legend"><span><i class="dot"></i> draggable vertex</span><span><i class="line-dot"></i> side length</span><span><i class="angle-dot"></i> interior angle</span></div>
@@ -114,6 +115,18 @@
     const lengths=points.map((p,i)=>dist(p,points[(i+1)%4])), angles=points.map((_,i)=>angleAt(i));
     document.querySelector('#measureLabels').innerHTML=lengths.map((v,i)=>{const a=points[i],b=points[(i+1)%4]; return `<text class="measure" text-anchor="middle" x="${(a.x+b.x)/2}" y="${(a.y+b.y)/2-10}">${fmt(v)} px</text>`}).join('');
     document.querySelector('#angleLabels').innerHTML=angles.map((v,i)=>{const p=points[i], cx=p.x+(points[(i+3)%4].x-p.x)*.13+(points[(i+1)%4].x-p.x)*.13, cy=p.y+(points[(i+3)%4].y-p.y)*.13+(points[(i+1)%4].y-p.y)*.13; return `<text class="angle" text-anchor="middle" x="${cx}" y="${cy}">${fmt(v)}°</text>`}).join('');
+    document.querySelector('#slopeLabels').innerHTML=points.map((p,i)=>{
+      const q=points[(i+1)%4];
+      const dx=q.x-p.x;
+      const dy=q.y-p.y;
+      const mx=(p.x+q.x)/2;
+      const my=(p.y+q.y)/2;
+      const len=Math.hypot(dx,dy) || 1;
+      const offsetX=(-dy/len)*20;
+      const offsetY=(dx/len)*20;
+      const slope = Math.abs(dx) < 0.001 ? '∞' : (dy/dx).toFixed(2);
+      return `<text class="slope" text-anchor="middle" x="${mx + offsetX}" y="${my + offsetY + 18}">m = ${slope}</text>`;
+    }).join('');
     if (rebuildControls) {
       document.querySelector('#vertices').innerHTML=points.map((p,i)=>`<circle class="vertex-hit" data-i="${i}" cx="${p.x}" cy="${p.y}" r="22"/><circle class="vertex" data-i="${i}" cx="${p.x}" cy="${p.y}" r="9"/><text class="vertex-label" x="${p.x+14}" y="${p.y-13}">${names[i]}</text>`).join('');
       sideInputs.innerHTML=lengths.map((v,i)=>`<div class="field"><label>${names[i]}${names[(i+1)%4]} / SIDE</label><input data-side="${i}" type="number" min="1" step="1" value="${fmt(v)}"></div>`).join('');
